@@ -1,17 +1,34 @@
-attacker[active]
+attacker[passive]
+
+principal Server[]
 
 principal Reader[]
 
 principal Creator[
 	knows private paste
 	knows password optional_secret
-	generates paste_id, key, cipher_iv, kdf_salt
+	generates key, cipher_iv, kdf_salt
 	// PBKDF2
 	kdf_key1 = PW_HASH(CONCAT(key, optional_secret))
 	cipher_text = AEAD_ENC(kdf_key1, paste, CONCAT(cipher_iv, kdf_salt))
 ]
 
-Creator -> Reader: paste_id, cipher_text, cipher_iv, kdf_salt, key, optional_secret
+Creator -> Server: cipher_text, cipher_iv, kdf_salt
+
+principal Server [
+	generates paste_id
+]
+
+Server -> Creator: paste_id
+
+phase[1]
+
+Creator -> Reader: paste_id, key, optional_secret
+
+phase[2]
+
+// in response to: Reader -> Server: paste_id
+Server -> Reader: cipher_text, cipher_iv, kdf_salt
 
 principal Reader[
 	kdf_key2 = PW_HASH(CONCAT(key, optional_secret))
@@ -19,6 +36,11 @@ principal Reader[
 ]
 
 queries[
+	// this is the one and only thing that is protected:
 	confidentiality? paste
-	authentication? Creator -> Reader: cipher_text
+	// both key and optional_password can be optained even by a passive attacker:
+	// confidentiality? key
+	// confidentiality? optional_secret
+	// the server or the attacker can spoof the message, so this fails:
+	// authentication? Creator -> Reader: cipher_text
 ]
