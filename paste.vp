@@ -1,7 +1,5 @@
 attacker[active]
 
-principal Server[]
-
 principal Reader[]
 
 principal Creator[
@@ -13,16 +11,7 @@ principal Creator[
 	cipher_text = AEAD_ENC(kdf_key1, paste, CONCAT(cipher_iv, kdf_salt))
 ]
 
-Creator -> Server: paste_id, cipher_text, cipher_iv, kdf_salt
-
-phase[1]
-
-Creator -> Reader: paste_id, key, optional_secret
-
-phase[2]
-
-// in response to Reader -> Server: paste_id
-Server -> Reader: cipher_text, cipher_iv, kdf_salt
+Creator -> Reader: paste_id, cipher_text, cipher_iv, kdf_salt, key, optional_secret
 
 principal Reader[
 	kdf_key2 = PW_HASH(CONCAT(key, optional_secret))
@@ -31,5 +20,5 @@ principal Reader[
 
 queries[
 	confidentiality? paste
-	authentication? Server -> Reader: cipher_text
+	authentication? Creator -> Reader: cipher_text
 ]
