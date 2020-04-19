@@ -9,7 +9,7 @@ principal Creator[
 	knows password optional_secret
 	generates key, cipher_iv, kdf_salt
 	// PBKDF2
-	kdf_key1 = PW_HASH(CONCAT(key, optional_secret))
+	kdf_key1 = HKDF(kdf_salt, CONCAT(key, optional_secret), cipher_iv)
 	cipher_text = AEAD_ENC(kdf_key1, paste, CONCAT(cipher_iv, kdf_salt))
 ]
 
@@ -31,16 +31,16 @@ phase[2]
 Server -> Reader: cipher_text, cipher_iv, kdf_salt
 
 principal Reader[
-	kdf_key2 = PW_HASH(CONCAT(key, optional_secret))
+	kdf_key2 = HKDF(kdf_salt, CONCAT(key, optional_secret), cipher_iv)
 	dec_paste = AEAD_DEC(kdf_key2, cipher_text, CONCAT(cipher_iv, kdf_salt))?
 ]
 
 queries[
-	// this is the one and only thing that is protected:
+	// paste can be obtained by the attacker, because they get the same information as Reader:
 	confidentiality? paste
-	// both key and optional_password can be optained even by a passive attacker:
-	// confidentiality? key
-	// confidentiality? optional_secret
-	// the server or the attacker can spoof the message, so this fails:
-	// authentication? Creator -> Reader: cipher_text
+	// both key and optional_password can be obtained even by a passive attacker:
+	confidentiality? key
+	confidentiality? optional_secret
+	// the server or the attacker can spoof the message:
+	authentication? Creator -> Reader: cipher_text
 ]
